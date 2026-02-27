@@ -16,11 +16,11 @@ export function LoginPage() {
     setLoading(true);
     try {
       const data = await api.login(email, password);
-      login(data.token, data.user);
+      await login(data.token);
       toast.success('Login successful!');
       navigate('/');
-    } catch (error) {
-      toast.error('Invalid email or password');
+    } catch (error: any) {
+      toast.error(error.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }
@@ -39,7 +39,6 @@ export function LoginPage() {
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <input type="hidden" name="remember" defaultValue="true" />
           <div className="-space-y-px rounded-md shadow-sm">
             <div>
               <label htmlFor="email-address" className="sr-only">Email address</label>
@@ -79,9 +78,6 @@ export function LoginPage() {
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
-          </div>
-          <div className="text-center text-xs text-gray-500 mt-4">
-              Demo Account: user@example.com / password
           </div>
         </form>
       </div>

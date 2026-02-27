@@ -1,93 +1,81 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import { 
-  DollarSign, 
-  ShoppingBag, 
-  Users, 
+import {
+  DollarSign,
+  ShoppingBag,
+  Users,
   TrendingUp,
   UtensilsCrossed
 } from "lucide-react";
-
-interface DashboardStats {
-  totalRevenue: number;
-  totalOrders: number;
-  totalUsers: number;
-  totalFoods: number;
-  recentOrders: any[];
-  popularFoods: any[];
-}
+import { formatPrice } from '../../utils';
+import { api, type Food, type Transaction, type User } from '../../services/api';
 
 export function AdminDashboard() {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalRevenue: 0,
-    totalOrders: 0,
-    totalUsers: 0,
-    totalFoods: 0,
-    recentOrders: [],
-    popularFoods: [],
-  });
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [totalFoods, setTotalFoods] = useState(0);
+  const [recentOrders, setRecentOrders] = useState<Transaction[]>([]);
+  const [popularFoods, setPopularFoods] = useState<Food[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulated data fetch
-    setTimeout(() => {
-      setStats({
-        totalRevenue: 15750000,
-        totalOrders: 342,
-        totalUsers: 156,
-        totalFoods: 24,
-        recentOrders: [
-          { id: "ORD-001", customer: "John Doe", total: 125000, status: "Completed" },
-          { id: "ORD-002", customer: "Jane Smith", total: 85000, status: "Pending" },
-          { id: "ORD-003", customer: "Bob Johnson", total: 95000, status: "Processing" },
-          { id: "ORD-004", customer: "Alice Brown", total: 155000, status: "Completed" },
-          { id: "ORD-005", customer: "Charlie Wilson", total: 65000, status: "Pending" },
-        ],
-        popularFoods: [
-          { name: "Rendang", orders: 89, revenue: 4005000 },
-          { name: "Sate Ayam", orders: 76, revenue: 2280000 },
-          { name: "Nasi Goreng Kampung", orders: 68, revenue: 1700000 },
-          { name: "Margherita Pizza", orders: 54, revenue: 4590000 },
-          { name: "Martabak Manis", orders: 45, revenue: 1575000 },
-        ],
-      });
-      setLoading(false);
-    }, 500);
-  }, []);
+    const fetchData = async () => {
+      try {
+        const [foodsRes, usersRes, transactionsRes] = await Promise.all([
+          api.getFoods(),
+          api.getAllUsers(),
+          api.getAllTransactions(),
+        ]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
+        const foods = foodsRes.data || [];
+        const users = usersRes.data || [];
+        const transactions = transactionsRes.data || [];
+
+        setTotalFoods(foods.length);
+        setTotalUsers(users.length);
+        setTotalOrders(transactions.length);
+        setTotalRevenue(
+          transactions
+            .filter(t => t.status === 'success')
+            .reduce((sum, t) => sum + (t.totalPrice || 0), 0)
+        );
+        setRecentOrders(transactions.slice(0, 5));
+        setPopularFoods(foods.sort((a, b) => (b.totalLikes || 0) - (a.totalLikes || 0)).slice(0, 5));
+      } catch (error) {
+        console.error("Failed to load dashboard data", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const statCards = [
     {
       title: "Total Revenue",
-      value: formatCurrency(stats.totalRevenue),
+      value: formatPrice(totalRevenue),
       icon: DollarSign,
       color: "text-green-600",
       bgColor: "bg-green-100",
     },
     {
       title: "Total Orders",
-      value: stats.totalOrders,
+      value: totalOrders,
       icon: ShoppingBag,
       color: "text-blue-600",
       bgColor: "bg-blue-100",
     },
     {
       title: "Total Users",
-      value: stats.totalUsers,
+      value: totalUsers,
       icon: Users,
       color: "text-purple-600",
       bgColor: "bg-purple-100",
     },
     {
       title: "Total Foods",
-      value: stats.totalFoods,
+      value: totalFoods,
       icon: UtensilsCrossed,
       color: "text-orange-600",
       bgColor: "bg-orange-100",
@@ -142,31 +130,33 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {stats.recentOrders.map((order) => (
+              {recentOrders.map((order) => (
                 <div
                   key={order.id}
                   className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                 >
                   <div>
-                    <p className="font-medium">{order.id}</p>
-                    <p className="text-sm text-gray-600">{order.customer}</p>
+                    <p className="font-medium">{order.invoiceId || order.id.slice(0, 8)}</p>
+                    <p className="text-sm text-gray-600">{new Date(order.orderDate || order.createdAt).toLocaleDateString('id-ID')}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium">{formatCurrency(order.total)}</p>
+                    <p className="font-medium">{formatPrice(order.totalPrice)}</p>
                     <span
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        order.status === "Completed"
-                          ? "bg-green-100 text-green-700"
-                          : order.status === "Processing"
-                          ? "bg-blue-100 text-blue-700"
+                      className={`text-xs px-2 py-1 rounded-full ${order.status === "success"
+                        ? "bg-green-100 text-green-700"
+                        : order.status === "failed"
+                          ? "bg-red-100 text-red-700"
                           : "bg-yellow-100 text-yellow-700"
-                      }`}
+                        }`}
                     >
                       {order.status}
                     </span>
                   </div>
                 </div>
               ))}
+              {recentOrders.length === 0 && (
+                <p className="text-gray-500 text-center py-4">No orders yet.</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -176,30 +166,36 @@ export function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Popular Foods
+              Most Liked Foods
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {stats.popularFoods.map((food, index) => (
+              {popularFoods.map((food, index) => (
                 <div
-                  key={food.name}
+                  key={food.id}
                   className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold">
                       {index + 1}
                     </div>
-                    <div>
-                      <p className="font-medium">{food.name}</p>
-                      <p className="text-sm text-gray-600">{food.orders} orders</p>
+                    <div className="flex items-center gap-2">
+                      <img src={food.imageUrl} alt={food.name} className="w-10 h-10 rounded-lg object-cover" />
+                      <div>
+                        <p className="font-medium">{food.name}</p>
+                        <p className="text-sm text-gray-600">❤️ {food.totalLikes || 0} likes</p>
+                      </div>
                     </div>
                   </div>
                   <p className="font-medium text-green-600">
-                    {formatCurrency(food.revenue)}
+                    {formatPrice(food.price)}
                   </p>
                 </div>
               ))}
+              {popularFoods.length === 0 && (
+                <p className="text-gray-500 text-center py-4">No foods yet.</p>
+              )}
             </div>
           </CardContent>
         </Card>

@@ -1,3 +1,4 @@
+import { Link } from 'react-router';
 import { Twitter, Instagram, MessageCircle } from 'lucide-react';
 
 export function Footer() {
@@ -12,10 +13,10 @@ export function Footer() {
           <div>
             <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
             <ul className="space-y-2">
-              <li><a href="/" className="text-gray-400 hover:text-white transition">Home</a></li>
-              <li><a href="/menu" className="text-gray-400 hover:text-white transition">Menu</a></li>
-              <li><a href="/about" className="text-gray-400 hover:text-white transition">About Us</a></li>
-              <li><a href="/contact" className="text-gray-400 hover:text-white transition">Contact</a></li>
+              <li><Link to="/" className="text-gray-400 hover:text-white transition">Home</Link></li>
+              <li><Link to="/menu" className="text-gray-400 hover:text-white transition">Menu</Link></li>
+              <li><Link to="/about" className="text-gray-400 hover:text-white transition">About Us</Link></li>
+              <li><Link to="/contact" className="text-gray-400 hover:text-white transition">Contact</Link></li>
             </ul>
           </div>
           <div>

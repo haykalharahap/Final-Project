@@ -1,54 +1,60 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  profilePicture: string;
-  role?: 'user' | 'admin'; // Add role support
-}
+import { api, type User } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
-  login: (token: string, userData: User) => void;
+  login: (token: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
-  isAdmin: boolean; // Add admin check
+  isAdmin: boolean;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchUser = async () => {
+    try {
+      const response = await api.getUser();
+      setUser(response.user);
+    } catch {
+      // Token invalid or expired
+      localStorage.removeItem('token');
+      setUser(null);
+    }
+  };
 
   useEffect(() => {
-    // Check local storage for persisted login
     const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    if (token && storedUser) {
-      setUser(JSON.parse(storedUser));
+    if (token) {
+      fetchUser().finally(() => setLoading(false));
+    } else {
+      setLoading(false);
     }
   }, []);
 
-  const login = (token: string, userData: User) => {
+  const login = async (token: string) => {
     localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userData));
-    setUser(userData);
+    await fetchUser();
   };
 
   const logout = () => {
+    api.logout().catch(() => { }); // fire-and-forget
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
-      logout, 
+    <AuthContext.Provider value={{
+      user,
+      login,
+      logout,
       isAuthenticated: !!user,
-      isAdmin: user?.role === 'admin'
+      isAdmin: user?.role === 'admin',
+      loading,
     }}>
       {children}
     </AuthContext.Provider>

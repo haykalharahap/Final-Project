@@ -1,27 +1,22 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
-import { api } from '../services/api';
+import { api, type Food } from '../services/api';
 import { FoodCard } from '../components/FoodCard';
 import { ArrowRight, Utensils, Zap, ThumbsUp } from 'lucide-react';
 import { motion } from 'motion/react';
-
-const CATEGORIES = [
-  { name: "Indonesian", image: "https://images.unsplash.com/photo-1546241072-48010ad2862c?auto=format&fit=crop&w=800&q=80" },
-  { name: "Burger", image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80" },
-  { name: "Coffee", image: "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=800&q=80" },
-  { name: "Dessert", image: "https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?auto=format&fit=crop&w=800&q=80" },
-];
+import { toast } from 'sonner';
 
 export function HomePage() {
-  const [featuredFoods, setFeaturedFoods] = useState([]);
+  const [featuredFoods, setFeaturedFoods] = useState<Food[]>([]);
   const [loading, setLoading] = useState(true);
+  const [subscribeEmail, setSubscribeEmail] = useState('');
+  const [subscribed, setSubscribed] = useState(() => !!localStorage.getItem('subscribed'));
 
   useEffect(() => {
     const loadFoods = async () => {
       try {
-        const data = await api.getFoods();
-        // Just take the first 4 for featured
-        setFeaturedFoods(data.slice(0, 4));
+        const response = await api.getFoods();
+        setFeaturedFoods((response.data || []).slice(0, 4));
       } catch (error) {
         console.error("Failed to load foods", error);
       } finally {
@@ -36,14 +31,14 @@ export function HomePage() {
       {/* Hero Section */}
       <section className="relative bg-orange-600 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32 relative z-10">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             className="text-center md:text-left md:w-1/2"
           >
             <h1 className="text-4xl md:text-6xl font-extrabold text-white leading-tight mb-6">
-              Delicious Food <br/> Delivered To You
+              Delicious Food <br /> Delivered To You
             </h1>
             <p className="text-lg md:text-xl text-orange-100 mb-8 max-w-lg mx-auto md:mx-0">
               Experience the best cuisine from top local restaurants. Fast delivery, fresh ingredients, and unforgettable flavors.
@@ -58,15 +53,15 @@ export function HomePage() {
             </div>
           </motion.div>
         </div>
-        
+
         {/* Background Image Overlay */}
         <div className="absolute top-0 right-0 w-full h-full md:w-2/3 md:h-full z-0 opacity-20 md:opacity-100 md:mask-image-gradient-to-l pointer-events-none">
-             <img 
-               src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1600&q=80" 
-               alt="Hero Food" 
-               className="w-full h-full object-cover md:object-right"
-             />
-             <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-orange-600/80 to-transparent md:via-transparent"></div>
+          <img
+            src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1600&q=80"
+            alt="Hero Food"
+            className="w-full h-full object-cover md:object-right"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-orange-600/80 to-transparent md:via-transparent"></div>
         </div>
       </section>
 
@@ -97,41 +92,23 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Categories Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-end mb-8">
-          <h2 className="text-3xl font-bold text-gray-800">Explore Categories</h2>
-          <Link to="/menu" className="text-orange-600 font-semibold hover:underline">View All</Link>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {CATEGORIES.map((cat) => (
-            <Link key={cat.name} to={`/menu?category=${cat.name}`} className="group relative rounded-xl overflow-hidden aspect-square shadow-md hover:shadow-xl transition">
-              <img src={cat.image} alt={cat.name} className="w-full h-full object-cover transition duration-500 group-hover:scale-110" />
-              <div className="absolute inset-0 bg-black bg-opacity-40 group-hover:bg-opacity-30 transition flex items-center justify-center">
-                <span className="text-white text-xl font-bold tracking-wider">{cat.name}</span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
       {/* Featured/Popular Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-end mb-8">
           <h2 className="text-3xl font-bold text-gray-800">Popular Now</h2>
           <Link to="/menu" className="text-orange-600 font-semibold hover:underline">See More</Link>
         </div>
-        
+
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-             {[1,2,3,4].map(i => (
-               <div key={i} className="h-80 bg-gray-200 rounded-xl animate-pulse"></div>
-             ))}
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-80 bg-gray-200 rounded-xl animate-pulse"></div>
+            ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {featuredFoods.map((food) => (
-              <FoodCard key={food.id} {...food} />
+              <FoodCard key={food.id} id={food.id} name={food.name} description={food.description} price={food.price} imageUrl={food.imageUrl} rating={food.rating} isLike={food.isLike} />
             ))}
           </div>
         )}
@@ -139,19 +116,44 @@ export function HomePage() {
 
       {/* CTA Section */}
       <section className="bg-gray-900 text-white py-16">
-         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between">
-            <div className="mb-8 md:mb-0 md:w-1/2">
-               <h2 className="text-3xl md:text-4xl font-bold mb-4">Get 20% Discount On First Order</h2>
-               <p className="text-gray-400 mb-8">Join our community and start enjoying delicious food at the best prices.</p>
-               <div className="flex gap-4">
-                 <input type="email" placeholder="Enter your email" className="px-4 py-3 rounded-lg text-gray-900 w-full max-w-xs focus:outline-none focus:ring-2 focus:ring-orange-500" />
-                 <button className="bg-orange-600 px-6 py-3 rounded-lg font-bold hover:bg-orange-700 transition">Subscribe</button>
-               </div>
-            </div>
-            <div className="md:w-1/3">
-              {/* Could be an app download image or similar */}
-            </div>
-         </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between">
+          <div className="mb-8 md:mb-0 md:w-1/2">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Get 20% Discount On First Order</h2>
+            <p className="text-gray-400 mb-8">Join our community and start enjoying delicious food at the best prices.</p>
+            {subscribed ? (
+              <div className="bg-green-900/50 border border-green-500/30 rounded-lg p-4 max-w-md">
+                <p className="text-green-400 font-bold text-lg mb-1">🎉 You're subscribed!</p>
+                <p className="text-gray-300 text-sm">Use promo code <span className="font-mono bg-orange-600 px-2 py-0.5 rounded text-white font-bold">SINGGAH20</span> at checkout for 20% off.</p>
+              </div>
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!subscribeEmail || !subscribeEmail.includes('@')) {
+                    toast.error('Please enter a valid email address');
+                    return;
+                  }
+                  localStorage.setItem('subscribed', subscribeEmail);
+                  setSubscribed(true);
+                  toast.success('🎉 Subscribed! Use promo code SINGGAH20 for 20% discount on your first order!');
+                }}
+                className="flex gap-4"
+              >
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={subscribeEmail}
+                  onChange={(e) => setSubscribeEmail(e.target.value)}
+                  className="px-4 py-3 rounded-lg text-gray-900 w-full max-w-xs focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  required
+                />
+                <button type="submit" className="bg-orange-600 px-6 py-3 rounded-lg font-bold hover:bg-orange-700 transition whitespace-nowrap">Subscribe</button>
+              </form>
+            )}
+          </div>
+          <div className="md:w-1/3">
+          </div>
+        </div>
       </section>
     </div>
   );
