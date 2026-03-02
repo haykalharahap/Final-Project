@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer } from 'react';
 
-interface CartItem {
-  id: number;
+interface LocalCartItem {
+  id: string;
   name: string;
   price: number;
   imageUrl: string;
@@ -9,14 +9,14 @@ interface CartItem {
 }
 
 interface CartState {
-  items: CartItem[];
+  items: LocalCartItem[];
   total: number;
 }
 
 type CartAction =
-  | { type: 'ADD_ITEM'; payload: CartItem }
-  | { type: 'REMOVE_ITEM'; payload: number }
-  | { type: 'UPDATE_QUANTITY'; payload: { id: number; quantity: number } }
+  | { type: 'ADD_ITEM'; payload: LocalCartItem }
+  | { type: 'REMOVE_ITEM'; payload: string }
+  | { type: 'UPDATE_QUANTITY'; payload: { id: string; quantity: number } }
   | { type: 'CLEAR_CART' };
 
 const CartContext = createContext<{
@@ -45,14 +45,15 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         total: state.total + action.payload.price,
       };
     }
-    case 'REMOVE_ITEM':
+    case 'REMOVE_ITEM': {
       const itemToRemove = state.items.find((item) => item.id === action.payload);
       return {
         ...state,
         items: state.items.filter((item) => item.id !== action.payload),
         total: state.total - (itemToRemove ? itemToRemove.price * itemToRemove.quantity : 0),
       };
-    case 'UPDATE_QUANTITY':
+    }
+    case 'UPDATE_QUANTITY': {
       const itemToUpdate = state.items.find((item) => item.id === action.payload.id);
       if (!itemToUpdate) return state;
       const quantityDiff = action.payload.quantity - itemToUpdate.quantity;
@@ -63,6 +64,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         ),
         total: state.total + itemToUpdate.price * quantityDiff,
       };
+    }
     case 'CLEAR_CART':
       return { items: [], total: 0 };
     default:

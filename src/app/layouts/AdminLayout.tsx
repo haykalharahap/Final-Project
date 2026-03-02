@@ -1,16 +1,17 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui/button";
-import { 
-  LayoutDashboard, 
-  UtensilsCrossed, 
-  ShoppingCart, 
-  Users, 
+import {
+  LayoutDashboard,
+  UtensilsCrossed,
+  ShoppingCart,
+  Users,
   LogOut,
   Menu,
-  X
+  X,
+  CreditCard
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function AdminLayout() {
   const { user, logout, isAdmin } = useAuth();
@@ -19,8 +20,13 @@ export function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Redirect if not admin
+  useEffect(() => {
+    if (!isAdmin) {
+      navigate("/");
+    }
+  }, [isAdmin, navigate]);
+
   if (!isAdmin) {
-    navigate("/");
     return null;
   }
 
@@ -33,6 +39,7 @@ export function AdminLayout() {
     { path: "/admin", icon: LayoutDashboard, label: "Dashboard" },
     { path: "/admin/foods", icon: UtensilsCrossed, label: "Food Management" },
     { path: "/admin/orders", icon: ShoppingCart, label: "Orders" },
+    { path: "/admin/payments", icon: CreditCard, label: "Approve Payment" },
     { path: "/admin/users", icon: Users, label: "Users" },
   ];
 
@@ -60,9 +67,8 @@ export function AdminLayout() {
       <div className="flex">
         {/* Sidebar */}
         <aside
-          className={`${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r transition-transform duration-300`}
+          className={`${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+            } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r transition-transform duration-300`}
         >
           <div className="p-6 border-b hidden lg:block">
             <h1 className="text-2xl font-bold text-orange-600">Admin Panel</h1>
@@ -74,11 +80,10 @@ export function AdminLayout() {
                 key={item.path}
                 to={item.path}
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive(item.path)
-                    ? "bg-orange-100 text-orange-600 font-medium"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive(item.path)
+                  ? "bg-orange-100 text-orange-600 font-medium"
+                  : "text-gray-700 hover:bg-gray-100"
+                  }`}
               >
                 <item.icon className="h-5 w-5" />
                 {item.label}
@@ -89,7 +94,7 @@ export function AdminLayout() {
           <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-white">
             <div className="flex items-center gap-3 mb-3">
               <img
-                src={user?.profilePicture}
+                src={user?.profilePictureUrl}
                 alt={user?.name}
                 className="w-10 h-10 rounded-full object-cover"
               />
