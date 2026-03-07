@@ -3,7 +3,7 @@ import { useCart } from '../context/CartContext';
 import { api } from '../services/api';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Heart, Star, ShoppingBag } from 'lucide-react';
+import { Heart, Star, ShoppingBag, ThumbsDown } from 'lucide-react';
 import { formatPrice } from '../utils';
 
 interface FoodProps {
@@ -19,12 +19,21 @@ interface FoodProps {
 export function FoodCard({ id, name, description, price, imageUrl, rating, isLike: initialLiked }: FoodProps) {
   const { dispatch } = useCart();
   const [isLiked, setIsLiked] = useState(initialLiked || false);
+  const [isDisliked, setIsDisliked] = useState(() => {
+    const disliked = localStorage.getItem(`dislike-${id}`);
+    return disliked === 'true';
+  });
   const [isAdding, setIsAdding] = useState(false);
 
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
     const wasLiked = isLiked;
     setIsLiked(!isLiked);
+    // If disliked, remove dislike when liking
+    if (isDisliked) {
+      setIsDisliked(false);
+      localStorage.removeItem(`dislike-${id}`);
+    }
     try {
       if (wasLiked) {
         await api.unlikeFood(id);
@@ -36,6 +45,28 @@ export function FoodCard({ id, name, description, price, imageUrl, rating, isLik
     } catch (error) {
       setIsLiked(wasLiked);
       toast.error('Please login to like foods');
+    }
+  };
+
+  const handleDislike = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    const wasDisliked = isDisliked;
+    setIsDisliked(!isDisliked);
+    // If liked, remove like when disliking
+    if (isLiked) {
+      setIsLiked(false);
+      try {
+        await api.unlikeFood(id);
+      } catch {
+        // ignore
+      }
+    }
+    if (!wasDisliked) {
+      localStorage.setItem(`dislike-${id}`, 'true');
+      toast('Marked as disliked');
+    } else {
+      localStorage.removeItem(`dislike-${id}`);
+      toast('Removed dislike');
     }
   };
 
@@ -53,12 +84,20 @@ export function FoodCard({ id, name, description, price, imageUrl, rating, isLik
     <Link to={`/food/${id}`} className="block bg-white rounded-xl shadow-lg overflow-hidden transition-transform transform hover:-translate-y-1 hover:shadow-xl group">
       <div className="relative h-36 sm:h-48 w-full">
         <img src={imageUrl} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
-        <button
-          onClick={handleLike}
-          className={`absolute top-2 right-2 p-1.5 sm:p-2 rounded-full shadow-md transition-colors z-10 ${isLiked ? 'bg-red-500 text-white' : 'bg-white text-gray-400 hover:text-red-500'}`}
-        >
-          <Heart className={`w-4 h-4 sm:w-5 sm:h-5 ${isLiked ? 'fill-current' : ''}`} />
-        </button>
+        <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
+          <button
+            onClick={handleLike}
+            className={`p-1.5 sm:p-2 rounded-full shadow-md transition-colors ${isLiked ? 'bg-red-500 text-white' : 'bg-white text-gray-400 hover:text-red-500'}`}
+          >
+            <Heart className={`w-4 h-4 sm:w-5 sm:h-5 ${isLiked ? 'fill-current' : ''}`} />
+          </button>
+          <button
+            onClick={handleDislike}
+            className={`p-1.5 sm:p-2 rounded-full shadow-md transition-colors ${isDisliked ? 'bg-gray-700 text-white' : 'bg-white text-gray-400 hover:text-gray-700'}`}
+          >
+            <ThumbsDown className={`w-4 h-4 sm:w-5 sm:h-5 ${isDisliked ? 'fill-current' : ''}`} />
+          </button>
+        </div>
       </div>
       <div className="p-3 sm:p-4">
         <div className="flex justify-between items-start mb-1 sm:mb-2 gap-1">

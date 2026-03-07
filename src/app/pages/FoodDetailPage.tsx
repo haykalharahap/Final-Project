@@ -2,7 +2,7 @@ import { useParams } from 'react-router';
 import { api, type Food, type Rating } from '../services/api';
 import { useCart } from '../context/CartContext';
 import { useState, useEffect } from 'react';
-import { Star, ShoppingCart, Heart, Minus, Plus, ArrowLeft } from 'lucide-react';
+import { Star, ShoppingCart, Heart, Minus, Plus, ArrowLeft, ThumbsDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatPrice } from '../utils';
 import { Link } from 'react-router';
@@ -15,6 +15,10 @@ export function FoodDetailPage() {
   const { dispatch } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [isLiked, setIsLiked] = useState(false);
+  const [isDisliked, setIsDisliked] = useState(() => {
+    if (!id) return false;
+    return localStorage.getItem(`dislike-${id}`) === 'true';
+  });
 
   // Rating form
   const [ratingValue, setRatingValue] = useState(5);
@@ -58,6 +62,11 @@ export function FoodDetailPage() {
     if (!food) return;
     const wasLiked = isLiked;
     setIsLiked(!isLiked);
+    // If disliked, remove dislike when liking
+    if (isDisliked) {
+      setIsDisliked(false);
+      localStorage.removeItem(`dislike-${food.id}`);
+    }
     try {
       if (wasLiked) {
         await api.unlikeFood(food.id);
@@ -69,6 +78,28 @@ export function FoodDetailPage() {
     } catch (error) {
       setIsLiked(wasLiked);
       toast.error("Please login to like foods");
+    }
+  };
+
+  const handleDislike = async () => {
+    if (!food) return;
+    const wasDisliked = isDisliked;
+    setIsDisliked(!isDisliked);
+    // If liked, remove like when disliking
+    if (isLiked) {
+      setIsLiked(false);
+      try {
+        await api.unlikeFood(food.id);
+      } catch {
+        // ignore
+      }
+    }
+    if (!wasDisliked) {
+      localStorage.setItem(`dislike-${food.id}`, 'true');
+      toast('Marked as disliked');
+    } else {
+      localStorage.removeItem(`dislike-${food.id}`);
+      toast('Removed dislike');
     }
   };
 
@@ -108,12 +139,20 @@ export function FoodDetailPage() {
         {/* Image Section */}
         <div className="w-full md:w-1/2 rounded-2xl overflow-hidden shadow-2xl relative">
           <img src={food.imageUrl} alt={food.name} className="w-full h-64 sm:h-80 md:h-full object-cover max-h-[500px]" />
-          <button
-            onClick={handleLike}
-            className={`absolute top-3 right-3 sm:top-4 sm:right-4 p-2.5 sm:p-3 rounded-full shadow-lg transition-all transform hover:scale-110 ${isLiked ? 'bg-red-500 text-white' : 'bg-white text-gray-400 hover:text-red-500'}`}
-          >
-            <Heart className={`w-5 h-5 sm:w-6 sm:h-6 ${isLiked ? 'fill-current' : ''}`} />
-          </button>
+          <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex flex-col gap-2">
+            <button
+              onClick={handleLike}
+              className={`p-2.5 sm:p-3 rounded-full shadow-lg transition-all transform hover:scale-110 ${isLiked ? 'bg-red-500 text-white' : 'bg-white text-gray-400 hover:text-red-500'}`}
+            >
+              <Heart className={`w-5 h-5 sm:w-6 sm:h-6 ${isLiked ? 'fill-current' : ''}`} />
+            </button>
+            <button
+              onClick={handleDislike}
+              className={`p-2.5 sm:p-3 rounded-full shadow-lg transition-all transform hover:scale-110 ${isDisliked ? 'bg-gray-700 text-white' : 'bg-white text-gray-400 hover:text-gray-700'}`}
+            >
+              <ThumbsDown className={`w-5 h-5 sm:w-6 sm:h-6 ${isDisliked ? 'fill-current' : ''}`} />
+            </button>
+          </div>
         </div>
 
         {/* Details Section */}
