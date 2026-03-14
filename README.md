@@ -173,7 +173,10 @@ src/
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | haykalharahap@gmail.com | qwerty123 |
+| Admin | admin.singgah@gmail.com | Admin123! |
+| Customer | customer.singgah@gmail.com | Customer123! |
+
+> Kamu juga bisa langsung klik tombol **"Login as Admin"** atau **"Login as Customer"** di halaman Login untuk masuk otomatis.
 
 Atau buat akun baru melalui halaman **Register** (`/register`).
 
